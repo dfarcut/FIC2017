@@ -6,6 +6,28 @@
 
 #include <string.h>
 
+void move(char *buffer ,int sockfd)
+{
+  int i,n;
+  for(i=0;i<strlen(buffer)-1;i++)
+  {
+  char buffm[50];
+  if(buffer[i]=='l'||buffer[i]=='r'||buffer[i]=='f'||buffer[i]=='b'||buffer[i]=='s')
+  {
+  strncpy(buffm,&buffer[i],3);
+  buffm[1]='\0';
+  printf("%s \n",buffm);
+  n = write(sockfd,buffm,1);
+  sleep(1);
+  if (n < 0) {
+     perror("ERROR writing to socket");
+     exit(1);
+  }
+  }
+  }
+  n = write(sockfd,"s",1);
+}
+
 int main(int argc, char *argv[]) {
    int sockfd, portno, n;
    struct sockaddr_in serv_addr;
@@ -49,28 +71,12 @@ int main(int argc, char *argv[]) {
    /* Now ask for a message from the user, this message
       * will be read by server
    */
-
    printf("Please enter the message: ");
    bzero(buffer,256);
    fgets(buffer,255,stdin);
-
-   /* Send message to the server */
-   n = write(sockfd, buffer, strlen(buffer));
-
-   if (n < 0) {
-      perror("ERROR writing to socket");
-      exit(1);
-   }
+   move(buffer,sockfd);
 
    /* Now read server response */
-   bzero(buffer,256);
-   n = read(sockfd, buffer, 255);
-
-   if (n < 0) {
-      perror("ERROR reading from socket");
-      exit(1);
-   }
-
    printf("%s\n",buffer);
    return 0;
 }
