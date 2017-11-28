@@ -6,29 +6,10 @@
 //#include <opencv2\cv.h>
 #include "opencv2/opencv.hpp"
 
-#include <stdio.h>
-#include <stdlib.h>
-
-#include <sys/types.h>
-#include <sys/socket.h>
-
-
-#include <netdb.h>
-#include <netinet/in.h>
-
-#include <string.h>
-#include <stdlib.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
-#include <unistd.h>
-
 using namespace std;
 using namespace cv;
 //initial min and max HSV filter values.
 //these will be changed using trackbars
-int mypos[2];
-int myposinit[2];
-int enemypos[2];
 int H_MIN = 161;
 int H_MAX = 185;
 int S_MIN = 20;
@@ -56,28 +37,6 @@ const std::string windowName2 = "Thresholded Image";
 const std::string windowName3 = "After Morphological Operations";
 const std::string trackbarWindowName = "Trackbars";
 
-
-void move(char *buffer ,int sockfd)
-{
-  int i,n;
-  for(i=0;i<strlen(buffer)-1;i++)
-  {
-  char buffm[50];
-  if(buffer[i]=='l'||buffer[i]=='r'||buffer[i]=='f'||buffer[i]=='b'||buffer[i]=='s')
-  {
-  strncpy(buffm,&buffer[i],3);
-  buffm[1]='\0';
-  printf("%s \n",buffm);
-  n = write(sockfd,buffm,1);
-  sleep(1);
-  if (n < 0) {
-     perror("ERROR writing to socket");
-     exit(1);
-  }
-  }
-  }
-  n = write(sockfd,"s",1);
-}
 
 void on_mouse(int e, int x, int y, int d, void *ptr)
 {
@@ -222,9 +181,12 @@ void trackFilteredObject(int &x, int &y, Mat threshold, Mat &cameraFeed) {
 		else putText(cameraFeed, "TOO MUCH NOISE! ADJUST FILTER", Point(0, 50), 1, 2, Scalar(0, 0, 255), 2);
 	}
 }
-void PosDetect()
+int main(int argc, char* argv[])
 {
-        bool trackObjects = true;
+
+	//some boolean variables for different functionality within this
+	//program
+	bool trackObjects = true;
 	bool useMorphOps = true;
 
 	Point p;
@@ -269,11 +231,8 @@ void PosDetect()
 		//this function will return the x and y coordinates of the
 		//filtered object
 		if (trackObjects)
-{
 			trackFilteredObject(x, y, threshold, cameraFeed);
-                  mypos[0]=x;
-                  mypos[1]=y;
-}
+
 		//show frames
 		imshow(windowName2, threshold);
 		imshow(windowName, cameraFeed);
@@ -297,11 +256,8 @@ void PosDetect()
 		//this function will return the x and y coordinates of the
 		//filtered object
 		if (trackObjects)
-                 {
 			trackFilteredObject(x, y, threshold, cameraFeed);
-                  enemypos[0]=x;
-                  enemypos[1]=y;
-                 } 
+
 		//show frames
 		imshow(windowName2, threshold);
 		imshow(windowName, cameraFeed);
@@ -310,70 +266,7 @@ void PosDetect()
 		//delay 30ms so that screen can refresh.
 		//image will not appear without this waitKey() command
 		waitKey(30);
-exit(0);
 	}
-}
-int main(int argc, char* argv[])
-{
-   int sockfd, portno, n;
-   struct sockaddr_in serv_addr;
-   struct hostent *server;
-
-   char buffer[256];
-
-   if (argc < 3) {
-      fprintf(stderr,"usage %s hostname port\n", argv[0]);
-      exit(0);
-   }
-
-   portno = 20236;
-
-   /* Create a socket point */
-   sockfd = socket(AF_INET, SOCK_STREAM, 0);
-
-   if (sockfd < 0) {
-      perror("ERROR opening socket");
-      exit(1);
-   }
-
-   server = gethostbyname(argv[1]);
-
-   if (server == NULL) {
-      fprintf(stderr,"ERROR, no such host\n");
-      exit(0);
-   }
-
-   bzero((char *) &serv_addr, sizeof(serv_addr));
-   serv_addr.sin_family = AF_INET;
-   bcopy((char *)server->h_addr, (char *)&serv_addr.sin_addr.s_addr, server->h_length);
-   serv_addr.sin_port = htons(portno);
-
-   /* Now connect to the server */
-   if (connect(sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr)) < 0) {
-      perror("ERROR connecting");
-      exit(1);
-   }
-
-   /* Now ask for a message from the user, this message
-      * will be read by server
-   */
-       printf("Please enter the message: ");
-       bzero(buffer,256);
-       fgets(buffer,255,stdin);
-
-       /* Now read server response */
-       printf("%s\n",buffer);
-   
-        char comenzi[50];
-        PosDetect();
-        myposinit[0]=mypos[0];
-        myposinit[1]=mypos[1];
-        move(buffer,sockfd);
-        PosDetect();
-        printf("initial coords: %d , %d \n current coords: %d ,%d\n",myposinit[0],myposinit[1],mypos[0],mypos[1]);
-        //comenzi=strategie();
-        //socket_con(comenzi);
-	
 
 	return 0;
 }
