@@ -1,25 +1,19 @@
 #include <sstream>
 #include <string>
 #include <iostream>
+#include <cmath>
 //#include <opencv2\highgui.h>
 #include "opencv2/highgui/highgui.hpp"
 //#include <opencv2\cv.h>
 #include "opencv2/opencv.hpp"
 
 #include <stdio.h>
-#include <stdlib.h>
-
-#include <sys/types.h>
-#include <sys/socket.h>
-
 
 #include <netdb.h>
 #include <netinet/in.h>
 
 #include <string.h>
 #include <stdlib.h>
-#include <arpa/inet.h>
-#include <netinet/in.h>
 #include <unistd.h>
 
 using namespace std;
@@ -29,6 +23,7 @@ using namespace cv;
 int mypos[2];
 int myposinit[2];
 int enemypos[2];
+int enemyposinit[2];
 int H_MIN = 161;
 int H_MAX = 185;
 int S_MIN = 20;
@@ -254,27 +249,17 @@ void PosDetect()
 	while (1) {
 
 
-		//store image to matrix
 		capture.read(cameraFeed);
-		//convert frame from BGR to HSV colorspace
 		cvtColor(cameraFeed, HSV, COLOR_BGR2HSV);
-		//filter HSV image between values and store filtered image to
-		//threshold matrix
 		inRange(HSV, Scalar(H_MIN, S_MIN, V_MIN), Scalar(H_MAX, S_MAX, V_MAX), threshold);
-		//perform morphological operations on thresholded image to eliminate noise
-		//and emphasize the filtered object(s)
 		if (useMorphOps)
 			morphOps(threshold);
-		//pass in thresholded frame to our object tracking function
-		//this function will return the x and y coordinates of the
-		//filtered object
 		if (trackObjects)
 {
 			trackFilteredObject(x, y, threshold, cameraFeed);
                   mypos[0]=x;
                   mypos[1]=y;
 }
-		//show frames
 		imshow(windowName2, threshold);
 		imshow(windowName, cameraFeed);
 		//imshow(windowName1, HSV);
@@ -310,7 +295,46 @@ void PosDetect()
 		//delay 30ms so that screen can refresh.
 		//image will not appear without this waitKey() command
 		waitKey(30);
-exit(0);
+        exit(0);
+	}
+}
+void strategy()
+{     
+    char buffer[256];
+	double angle=0;
+	int myVec[1],enemyVec[1];
+	
+    bzero(buffer,256);
+	strcpy(buffer,"fs");
+    printf("%s\n",buffer);
+	while(1)
+	{
+	/* 0 is x , 1 is y */
+	PosDetect();
+    myposinit[0]=mypos[0];
+    myposinit[1]=mypos[1];
+	enemyposinit[0]=enemypos[0];
+	enemyposinit[1]=enemypos[1];
+    move(buffer,sockfd);
+	
+	/*calculating the two vector coordinates */
+    myVec[0]=mypos[0]-myposinit[0];
+	myVec[1]=mypos[1]-myposinit[1];
+	enemyVec[0]=enemypos[0]-enemyposinit[0];
+	enemyVec[0]=enemypos[0]-enemyposinit[0];
+	
+    /* angle between vectors */	
+    angle=atan2(enemyVec[1],enemyVec[0])-atan2(myVec[1],myVec[0]);
+	if(angle>15)
+		strcpy(buffer,"ls");
+    else
+	{
+		if(myVec[1]>enemyVec[1])
+			strcpy(buffer,"bs");
+		else
+			strcpy(buffer,"fs");
+	}
+    printf("initial coords: %d , %d \n current coords: %d ,%d\n",myposinit[0],myposinit[1],mypos[0],mypos[1]);
 	}
 }
 int main(int argc, char* argv[])
@@ -319,10 +343,8 @@ int main(int argc, char* argv[])
    struct sockaddr_in serv_addr;
    struct hostent *server;
 
-   char buffer[256];
-
-   if (argc < 3) {
-      fprintf(stderr,"usage %s hostname port\n", argv[0]);
+   if (argc < 2) {
+      cout<<"nu a fost introdus ip-ul "<<endl;
       exit(0);
    }
 
@@ -353,28 +375,8 @@ int main(int argc, char* argv[])
       perror("ERROR connecting");
       exit(1);
    }
-
-   /* Now ask for a message from the user, this message
-      * will be read by server
-   */
-       printf("Please enter the message: ");
-       bzero(buffer,256);
-       fgets(buffer,255,stdin);
-
-       /* Now read server response */
-       printf("%s\n",buffer);
-   
-        char comenzi[50];
-        PosDetect();
-        myposinit[0]=mypos[0];
-        myposinit[1]=mypos[1];
-        move(buffer,sockfd);
-        PosDetect();
-        printf("initial coords: %d , %d \n current coords: %d ,%d\n",myposinit[0],myposinit[1],mypos[0],mypos[1]);
-        //comenzi=strategie();
-        //socket_con(comenzi);
+       strategy();
 	
 
 	return 0;
 }
-
